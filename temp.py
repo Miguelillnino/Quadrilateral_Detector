@@ -34,16 +34,15 @@ def find_quads(img):
     squares = []
     
     for gray in cv2.split(img):
-        
-    
+        ddepth = cv2.CV_8U
         for thrs in xrange(0, 255, 12):
+            #Laplacian
+            bin = cv2.Laplacian(gray, ddepth, ksize=3)
             #Canny
-            bin = cv2.Canny(gray, thrs, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
-        #AÑADI ESTO:
-            #kernel = np.ones((1,1),np.uint8) #10,10
-            #bin = cv2.morphologyEx(bin, cv2.MORPH_OPEN, kernel)
-            
-            kernel = np.ones((5,5),np.uint8) #10,10
+            #cv2.imshow("Laplacian",bin)
+            bin = cv2.Canny(bin, thrs, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
+            #dilate
+            kernel = np.ones((3,3),np.uint8) #10,10
             bin = cv2.dilate(bin, kernel, iterations=1)
             #Kernel de 5 X 5 es bueno para los celulares probar con vrios dispositivos.
             #Checar para papel
@@ -96,7 +95,7 @@ while(int(time.time()-start_time) < cap_duration):
         # Use de image to obtain canny edge
         quads = find_quads(img)
         cv2.drawContours(img, quads, -1, (255, 0, 0), 3 )
-        cv2.imshow('squares', img)
+        cv2.imshow('quads', img)
         #cv2.imwrite("quad"+ str(time.time())+'.png', img)
         #cv2.imshow("OpenCVCam", frame)
     
