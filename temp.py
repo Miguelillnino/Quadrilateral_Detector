@@ -18,8 +18,12 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     xrange = range
 
-print("Version of software 1.0.0")
+print("Version of software 2.0.1")
 
+"Detector Funcional para quadrilateros en celulares"
+"Median Blur"
+"ADAPTIVE_THRESH_MEAN_C"
+"dilate"
 
 def angle_cos(p0, p1, p2):
     d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
@@ -32,39 +36,31 @@ def angle_cos(p0, p1, p2):
 def find_quads(img):
     
     squares = []
+    blurred = cv2.medianBlur(img, 9)
+    #bin = cv2.Canny(blurred, cv2.THRESH_OTSU, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
+    #ret, bin = cv2.threshold(img, cv2.THRESH_OTSU, 255, cv2.THRESH_BINARY)
     
-    for gray in cv2.split(img):
-        
+    bin = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,2)
     
-        for thrs in xrange(0, 255, 12):
-            #Canny
-            bin = cv2.Canny(gray, thrs, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
-        #AÑADI ESTO:
-            #kernel = np.ones((1,1),np.uint8) #10,10
-            #bin = cv2.morphologyEx(bin, cv2.MORPH_OPEN, kernel)
-            
-            kernel = np.ones((5,5),np.uint8) #10,10
-            bin = cv2.dilate(bin, kernel, iterations=1)
-            #Kernel de 5 X 5 es bueno para los celulares probar con vrios dispositivos.
-            #Checar para papel
-            
-            cv2.imshow("dilate",bin)
-        
-            contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-            for cnt in contours:
+    kernel = np.ones((3,3),np.uint8) #10,10
+    bin = cv2.dilate(bin, kernel, iterations=1)
+    
+    #cv2.imshow("Dilate", bin)
+    cv2.imshow("open", bin)
+    
+    contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    for cnt in contours:
+
+        cnt_len = cv2.arcLength(cnt, True)
+        cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
                 
-                cnt_len = cv2.arcLength(cnt, True)
-                cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
-                
-                if len(cnt) == 4 and cv2.contourArea(cnt) > 7000 and cv2.isContourConvex(cnt):
-                    cnt = cnt.reshape(-1, 2)
-                    max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in xrange(4)])
+        if len(cnt) == 4 and cv2.contourArea(cnt) > 7000 and cv2.isContourConvex(cnt):
+            cnt = cnt.reshape(-1, 2)
+            max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in xrange(4)])
                     
-                    if max_cos < 0.3: 
-                        squares.append(cnt)
+            if max_cos < 0.3: 
+                squares.append(cnt)
             
-
-
     return squares
 
 
@@ -84,10 +80,10 @@ print("Height=",Height)
 if (cap_video.isOpened() == False):
     print("Error reading video file")
 
-cap_duration = 100
+cap_duration = 200
 
 start_time = time.time()
-while(int(time.time()-start_time) < cap_duration):
+while(True):
     ret, frame = cap_video.read()
     if ret == True:
         # Use de image to convert in gray scale
@@ -96,7 +92,7 @@ while(int(time.time()-start_time) < cap_duration):
         # Use de image to obtain canny edge
         quads = find_quads(img)
         cv2.drawContours(img, quads, -1, (255, 0, 0), 3 )
-        cv2.imshow('squares', img)
+        cv2.imshow('quads', img)
         #cv2.imwrite("quad"+ str(time.time())+'.png', img)
         #cv2.imshow("OpenCVCam", frame)
     
