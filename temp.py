@@ -34,31 +34,36 @@ def angle_cos(p0, p1, p2):
 
 
 def find_quads(img):
-    
+    #ret, bin = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
+    #print(ret)
     squares = []
-    blurred = cv2.medianBlur(img, 9)
-    #bin = cv2.Canny(blurred, cv2.THRESH_OTSU, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
-    #ret, bin = cv2.threshold(img, cv2.THRESH_OTSU, 255, cv2.THRESH_BINARY)
-    
+    blurred = cv2.GaussianBlur(img,(11,11),0)
+        #bin = cv2.Canny(blurred, cv2.THRESH_OTSU, 255)# apertureSize = 5; cv2.THRESH_OTSU, revuelve 2 objetos ret, 
+
+    cv2.imshow("blur", blurred)
     bin = cv2.adaptiveThreshold(blurred,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,2)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3,3))
+        # bin = cv2.dilate(bin, kernel, iterations=1)
+    bin = cv2.morphologyEx(bin, cv2.MORPH_CLOSE, kernel)
+
+        #cv2.imshow("Dilate", bin)
+        #cv2.imshow("open", bin)
     
-    kernel = np.ones((3,3),np.uint8) #10,10
-    bin = cv2.dilate(bin, kernel, iterations=1)
-    
-    #cv2.imshow("Dilate", bin)
-    cv2.imshow("open", bin)
+    cv2.imshow("result", bin)
     
     contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     for cnt in contours:
-
         cnt_len = cv2.arcLength(cnt, True)
-        cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
-                
-        if len(cnt) == 4 and cv2.contourArea(cnt) > 7000 and cv2.isContourConvex(cnt):
+        cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True) #0.02
+        print("cnt Before condition",cnt)
+        if len(cnt) == 4 and cv2.contourArea(cnt) > 7000: #and cv2.isContourConvex(cnt):
+            print("if have 4 points and it is greater than 7000 pixels",cnt)
+            print("contourArea",cv2.contourArea(cnt))        
             cnt = cnt.reshape(-1, 2)
             max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in xrange(4)])
-                    
-            if max_cos < 0.3: 
+            print("max_cos general",max_cos)
+            if max_cos < 0.3:  # 0.3
+                print("max_cos appoved",cnt)
                 squares.append(cnt)
             
     return squares
