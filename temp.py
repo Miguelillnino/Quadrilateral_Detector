@@ -37,19 +37,6 @@ def angle_cos(p0, p1, p2):
     #print(np.dot(d1, d2))
     return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
 
-def backgound_cnt(img):
-    _, thresholded = cv2.threshold(img, 240, 255, cv2.THRESH_BINARY)
-
-    # Find contours
-    contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Find the contour with the largest area
-    largest_contour = max(contours, key=cv2.contourArea)
-
-    # Calculate the area of the largest contour
-    background_area = cv2.contourArea(largest_contour)
-    return background_area
-
 def find_quads(img):
     #ret, bin = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
     #print(ret)
@@ -72,6 +59,7 @@ def find_quads(img):
     #cv2.imshow("result", bin)
     
     contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+
     for cnt in contours:
         cnt_len = cv2.arcLength(cnt, True)
         cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True) #0.02
@@ -132,30 +120,37 @@ while(True):
         #print("quads",quads)
         #result = []
         threshold_similarity = 0.8  
+        cv2.drawContours(img, quads, -1, (255, 0, 0), 3 )
+        cv2.imshow('quads', img)
         
-        
+        #cv2.imshow('croped', cropped_image)
         ##Normalizar la profundad de Face y Quad
         if(len(faces) != 0) and (len(quads) != 0):
             for face in faces:
                 for quad in quads:
+                    mask = np.zeros_like(img)
+                    quad_np = np.array([quad], dtype=np.int32)  # Convert quad to numpy array
+                    cv2.fillPoly(mask, quad_np, (255, 255, 255))
+                    cropped_image = cv2.bitwise_and(img, mask)
                     if len(face.shape) > 2:
                         face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-                    if len(quad.shape) > 2:
+                    if len(cropped_image.shape) > 2:
                         quad = cv2.cvtColor(quad, cv2.COLOR_BGR2GRAY)
-                        
-                    result = cv2.matchTemplate(quad, face, cv2.TM_CCOEFF_NORMED)
+                    result = cv2.matchTemplate(cropped_image, face, cv2.TM_CCOEFF_NORMED)
                     if result is not None:
                         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
                         if max_val > threshold_similarity:
                             print("The smaller image is inside the larger image.")
+                        else:
+                            print("nothing to show")
         
-        
+        ##Thinking if the face recognition have two faces and the there are quads at the same time.
         
         
         #result = cv2.matchTemplate(larger_gray, smaller_gray, cv2.TM_CCOEFF_NORMED)
         #quads = find_quads(img)
-        cv2.drawContours(img, quads, -1, (255, 0, 0), 3 )
-        cv2.imshow('quads', img)
+        #cv2.drawContours(img, quads, -1, (255, 0, 0), 3 )
+        
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
